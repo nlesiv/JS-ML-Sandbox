@@ -17,51 +17,46 @@ class LinearRegression {
     this.weights = tf.zeros([this.features.shape[1], 1]);
   }
 
-  gradientDescent() {
-    const currentGuesses = this.features.matMul(this.weights);
-    const differences = currentGuesses.sub(this.labels);
+  gradientDescent(features, labels) {
+    const currentGuesses = features.matMul(this.weights);
+    const differences = currentGuesses.sub(labels);
 
-    const slopes = this.features
+    const slopes = features
       .transpose()
       .matMul(differences)
-      .div(this.features.shape[0]);
+      .div(features.shape[0]);
 
     this.weights = this.weights.sub(slopes.mul(this.options.learningRate));
   }
-  gradientDescentOld() {
-    const currentGuessesForMPG = this.features.map((row) => {
-      return this.m * row[0] + this.b;
-    });
-
-    const bSlope =
-      (_.sum(
-        currentGuessesForMPG.map((guess, i) => {
-          return guess - this.labels[i][0];
-        })
-      ) *
-        2) /
-      this.features.length;
-
-    const mSlope =
-      (_.sum(
-        currentGuessesForMPG.map((guess, i) => {
-          return -1 * this.features[i][0] * (this.labels[i][0] - guess);
-        })
-      ) *
-        2) /
-      this.features.length;
-
-    this.m = this.m - mSlope * this.options.learningRate;
-    this.b = this.b - bSlope * this.options.learningRate;
-  }
-
   train() {
+    const batchQuantity = Math.floor(
+      this.features.shape[0] / this.options.batchSize
+    );
     for (let i = 0; i < this.options.iterations; ++i) {
+      for (let j = 0; j < batchQuantity; ++j) {
+        const { batchSize } = this.options;
+        const startIndex = j * batchSize;
+        const featureSlice = this.features.slice(
+          [startIndex, 0],
+          [batchSize, -1]
+        );
+        const labelSlice = this.labels.slice(
+          [startIndex, 0],
+          [batchSize, -1]
+        );
+        this.gradientDescent(featureSlice, labelSlice);
+      }
       // console.log(this.options.learningRate);
-      this.gradientDescent();
+
       this.recordMSE();
       this.updateLearningRate();
     }
+  }
+
+  predict(observations) {
+    let prediction = this.processFeatures(observations).matMul(this.weights);
+
+    return prediction;
   }
 
   test(testFeatures, testLabels) {
