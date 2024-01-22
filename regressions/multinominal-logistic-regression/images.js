@@ -1,41 +1,50 @@
 require("@tensorflow/tfjs-node");
 const tf = require("@tensorflow/tfjs");
 const LogisticRegression = require("./logistic-regression");
-const plot = require('node-remote-plot');
-const _ = require('lodash');
+const plot = require("node-remote-plot");
+const _ = require("lodash");
 
 const mnist = require("mnist-data");
+function loadData() {
+  const mnistData = mnist.training(0, 60000);
 
-const mnistData = mnist.training(0, 5000);
+  // console.log(mnistData);
 
-// console.log(mnistData);
-
-const features = mnistData.images.values.map(image => _.flatMap(image));
-const encodedLabels = mnistData.labels.values.map(label => {
+  const features = mnistData.images.values.map((image) => _.flatMap(image));
+  const encodedLabels = mnistData.labels.values.map((label) => {
     const row = new Array(10).fill(0);
     row[label] = 1;
     return row;
-})
+  });
 
-const regression = new LogisticRegression(features, encodedLabels, {
-    learningRate: 1,
-    iterations: 20,
-    batchSize: 100
+  return { features, labels: encodedLabels };
+}
+
+const { features, labels } = loadData();
+
+const regression = new LogisticRegression(features, labels, {
+  learningRate: 1,
+  iterations: 20,
+  batchSize: 100,
 });
 
 regression.train();
 
-const testMnistData = mnist.testing(0, 100);
-const testFeatures = testMnistData.images.values.map( image => _.flatMap(image));
-const testEncodedLabels = testMnistData.labels.values.map(label => {
-    const row = new Array(10).fill(0);
-    row[label] = 1;
-    return row;
+const testMnistData = mnist.testing(0, 1000);
+const testFeatures = testMnistData.images.values.map((image) =>
+  _.flatMap(image)
+);
+const testEncodedLabels = testMnistData.labels.values.map((label) => {
+  const row = new Array(10).fill(0);
+  row[label] = 1;
+  return row;
 });
 
 const accuracy = regression.test(testFeatures, testEncodedLabels);
 console.log(accuracy);
-
+plot({
+    x: regression.costHistory,
+    
+})
 // console.log(encodedLabels);
 // console.log(features);
-
